@@ -21,6 +21,7 @@ async fn main() -> Result<()> {
         .route("/", get(list))
         .route("/create", get(create))
         .route("/delete/:id", get(delete))
+        .route("/update", get(update))
         .with_state(pool)
         .layer(CorsLayer::very_permissive());
 
@@ -56,4 +57,10 @@ async fn delete(State(pool): State<SqlitePool>, Path(id): Path<i64>) -> Result<S
     // Delete todo
     sqlx::query!("DELETE FROM todos where id = ?", id).execute(&pool).await?;
     Ok(format!("Successfully deleted todo!"))
+}
+
+async fn update(State(pool): State<SqlitePool>, Form(todo): Form<Todo>) -> Result<String> {
+    // Delete todo
+    sqlx::query!("UPDATE todos SET description = ?, done = ? WHERE id = ?", todo.description, todo.done, todo.id).execute(&pool).await?;
+    Ok(format!("Successfully updated todo!"))
 }
