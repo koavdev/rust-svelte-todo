@@ -32,6 +32,11 @@ async fn main() -> Result<()> {
         .await?)
 }
 
+#[derive(Deserialize)]
+struct NewTodo {
+    description: String,
+}
+
 #[derive(Serialize, Deserialize)]
 struct Todo {
     id: i64,
@@ -47,7 +52,7 @@ async fn list(State(pool): State<SqlitePool>) -> Result<Json<Vec<Todo>>> {
     Ok(Json(todos))
 }
 
-async fn create(State(pool): State<SqlitePool>, Form(todo): Form<Todo>) -> Result<String> {
+async fn create(State(pool): State<SqlitePool>, Form(todo): Form<NewTodo>) -> Result<String> {
     // Create todo
     sqlx::query!("INSERT INTO todos (description) VALUES (?)", todo.description).execute(&pool).await?;
     Ok(format!("Successfully inserted todo!"))
