@@ -1,18 +1,41 @@
-use axum::{routing::get, Router};
+use axum::{routing::get, Router, Json, extract::State};
 use std::net::SocketAddr;
-use tokio::net::TcpListener;
+use serde::{Serialize, Deserialize};
+use axum_error::Result;
+use sqlx::sqlite::SqlitePool;
+use tower_http::cors::CorsLayer;
 
 #[tokio::main]
-async fn main() {
-    let app = Router::new().route("/", get(index));
-    let listener = TcpListener::bind("0.0.0.0:8000").await.unwrap();
-    let addr = listener.local_addr().unwrap();
-    println!("Server running on http://{}", addr);
-    axum::serve(listener, app)
-        .await
-        .unwrap();
+async fn main() -> Result<()> {
+    // Get enviornment variables
+    let _ = dotenv::dotenv();
+    let url = std::env::var("DATABASE_URL")?;
+    let pool = SqlitePool::connect(&url).await?;
+
+    // Create router for server
+    let app = Router::new()
+        .route("/", get(list))
+        .with_state(pool)
+        .layer(CorsLayer::very_permissive());
+
+    // Start server!
+    let address = SocketAddr::from(([0,0,0,0], 8000));
+    Ok(axum::Server::bind(&address)
+        .serve(app.into_make_service())
+        .await?)
 }
 
-async fn index() -> String {
-    format!("Hello, World!")
+#[derive(Serialize, Deserialize)]
+struct Todo {
+    id: i64,
+    description: String,
+    done: bool
+}
+
+async fn list(State(pool): State<SqlitePool>) -> Result<Json<Vec<Todo>>> {
+    // List all todos
+    let todos = sqlx::query_as!(Todo, "SELECT id, description, done FROM todos ORDER BY id")
+        .fetch_all(&pool)
+        .await?;
+    Ok(Json(todos))
 }
