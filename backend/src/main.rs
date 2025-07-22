@@ -1,4 +1,4 @@
-use axum::{routing::get, Router, Json, extract::State};
+use axum::{routing::{get}, Router, Json, Form, extract::State};
 use std::net::SocketAddr;
 use serde::{Serialize, Deserialize};
 use axum_error::Result;
@@ -15,6 +15,7 @@ async fn main() -> Result<()> {
     // Create router for server
     let app = Router::new()
         .route("/", get(list))
+        .route("/create", get(create))
         .with_state(pool)
         .layer(CorsLayer::very_permissive());
 
@@ -38,4 +39,10 @@ async fn list(State(pool): State<SqlitePool>) -> Result<Json<Vec<Todo>>> {
         .fetch_all(&pool)
         .await?;
     Ok(Json(todos))
+}
+
+async fn create(State(pool): State<SqlitePool>, Form(todo): Form<Todo>) -> Result<String> {
+    // Create todo
+    sqlx::query!("INSERT INTO todos (description) VALUES (?)", todo.description).execute(&pool).await?;
+    Ok(format!("Successfully inserted todo!"))
 }
