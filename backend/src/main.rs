@@ -1,5 +1,5 @@
 use axum::{
-    routing::{get},
+    routing::{get, post},
     Router, Json, Form,
     extract::{State, Path}
 };
@@ -19,9 +19,9 @@ async fn main() -> Result<()> {
     // Create router for server
     let app = Router::new()
         .route("/", get(list))
-        .route("/create", get(create))
+        .route("/create", post(create))
         .route("/delete/:id", get(delete))
-        .route("/update", get(update))
+        .route("/update", post(update))
         .with_state(pool)
         .layer(CorsLayer::very_permissive());
 
