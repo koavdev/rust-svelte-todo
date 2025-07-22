@@ -1,4 +1,8 @@
-use axum::{routing::{get}, Router, Json, Form, extract::State};
+use axum::{
+    routing::{get},
+    Router, Json, Form,
+    extract::{State, Path}
+};
 use std::net::SocketAddr;
 use serde::{Serialize, Deserialize};
 use axum_error::Result;
@@ -16,6 +20,7 @@ async fn main() -> Result<()> {
     let app = Router::new()
         .route("/", get(list))
         .route("/create", get(create))
+        .route("/delete/:id", get(delete))
         .with_state(pool)
         .layer(CorsLayer::very_permissive());
 
@@ -45,4 +50,10 @@ async fn create(State(pool): State<SqlitePool>, Form(todo): Form<Todo>) -> Resul
     // Create todo
     sqlx::query!("INSERT INTO todos (description) VALUES (?)", todo.description).execute(&pool).await?;
     Ok(format!("Successfully inserted todo!"))
+}
+
+async fn delete(State(pool): State<SqlitePool>, Path(id): Path<i64>) -> Result<String> {
+    // Delete todo
+    sqlx::query!("DELETE FROM todos where id = ?", id).execute(&pool).await?;
+    Ok(format!("Successfully deleted todo!"))
 }
